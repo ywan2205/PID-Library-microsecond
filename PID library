@@ -58,7 +58,7 @@ PID::PID(double* Input, double* Output, double* Setpoint,
 bool PID::Compute()
 {
    if(!inAuto) return false;
-   unsigned long now = millis();
+   unsigned long now = micros();
    unsigned long timeChange = (now - lastTime);
    if(timeChange>=SampleTime)
    {
@@ -108,7 +108,7 @@ void PID::SetTunings(double Kp, double Ki, double Kd, int POn)
 
    dispKp = Kp; dispKi = Ki; dispKd = Kd;
 
-   double SampleTimeInSec = ((double)SampleTime)/1000;
+   double SampleTimeInSec = ((double)SampleTime)/1000000;
    kp = Kp;
    ki = Ki * SampleTimeInSec;
    kd = Kd / SampleTimeInSec;
