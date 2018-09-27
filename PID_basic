@@ -1,0 +1,82 @@
+/********************************************************
+ * PID Basic Example
+ * Reading analog input 0 to control analog PWM output 3
+ ********************************************************/
+
+#include <PID_v1.h>
+#include"PWM.h"
+
+#define PIN_INPUT 0
+#define PIN_OUTPUT 3
+
+//Define Variables we'll be connecting to
+double Setpoint, Input, Output, duty;//duty is the anti windup output
+
+//Specify the links and initial tuning parameters
+double Kp=0.0738, Ki=221.6312, Kd=0.000347;//just change these numbers
+
+int32_t frequency=100000;//PWM frequency
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
+int const MeasurementsToAverage = 16;
+double inputaverage[MeasurementsToAverage] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+double voltage1, current1;
+double scope = 1.254, offset = 57.117; //to indicate the relationship between measured voltage and inductor current 
+
+void setup()
+{
+  Serial.begin(9600);
+  
+  //initialize the variables we're linked to
+  Input = analogRead(PIN_INPUT);
+  Setpoint = 600;//reference value in ampere is about 800mA
+
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
+
+  //initialize the PWM pin and set the frequency.
+  InitTimersSafe();
+  bool success = SetPinFrequencySafe(PIN_OUTPUT,frequency); // set frequency
+}
+
+void loop()
+{
+  pwmWrite(PIN_OUTPUT,duty);
+  voltage1 = analogRead(0);
+  Input = scope * voltage1 + offset;
+  myPID.Compute();
+  duty = antiWindup(Output);
+  //Input = average(inputaverage,MeasurementsToAverage);
+  Serial.println(duty);
+}
+
+double antiWindup(double Output){
+duty=Output;
+if (duty>=200)
+{duty=200;}
+else
+{duty=duty;}
+return duty;
+}
+
+float AverageCurrent = 0;
+
+float average(double inputaverage[],int MeasurementsToAverage){
+for(int i = 0; i < MeasurementsToAverage; i++)
+{
+  AverageCurrent += inputaverage[i];
+}
+AverageCurrent /= MeasurementsToAverage;
+return AverageCurrent;
+}
+
+int j = 0;
+void ReadCurrent(){
+    inputaverage[j] = analogRead(1);
+  if(j<MeasurementsToAverage){
+    j++;
+  }
+  else
+  j=0;
+}
