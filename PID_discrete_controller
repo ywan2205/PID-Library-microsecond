@@ -1,0 +1,85 @@
+
+// This example uses the timer interrupt to sample feedback from boost converter.
+// The sampling time is set as 1000Hz
+// After the calculation of PID is done, it will generate a PWM output with 10kHz frequency.
+
+#include <PWM.h>
+
+#include <avdweb_AnalogReadFast.h>
+
+#include <TimerOne.h>
+
+#include <PID_v1.h>
+
+#define PIN_INPUT 0  //This is the feedback pin
+#define PIN_OUTPUT 3
+
+volatile int i = 0;
+
+//Define Variables we'll be connecting to
+double Setpoint, Input, Output;
+
+//Exponential Filter
+double alpha = 0.3;
+double average = 0;
+
+//Specify the links and initial tuning parameters
+double Kp=0.000067, Ki=73.4, Kd=0;
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
+volatile double feedback = 0;          //Store the feedback value
+
+//For PWM library
+int32_t frequency=100000;//PWM frequency
+
+void setup(void)
+{
+  pinMode(PIN_INPUT, INPUT);
+  pinMode(PIN_OUTPUT, OUTPUT);
+  Timer1.initialize(100000);//interrupt happens every 1 million second
+  Timer1.attachInterrupt(Controller); 
+  Serial.begin(9600);
+
+  //PID part: initialize the variables we're linked to
+  Input = analogRead(PIN_INPUT);
+  Setpoint = 300;
+
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
+
+  //minimize the Sampling time (1 micro second) 
+  myPID.SetSampleTime(500);
+
+  //Set output limits
+  myPID.SetOutputLimits(40, 200);
+
+  
+  //initialize the PWM pin and set the frequency.
+  InitTimersSafe();
+  bool success = SetPinFrequencySafe(PIN_OUTPUT,frequency); // set frequency
+
+  
+}
+
+void Controller(void)
+{
+  //PID part: 
+//  Input = analogReadFast(PIN_INPUT);
+//  average = average*alpha+Input*(1-alpha);
+//  myPID.Compute();
+//  pwmWrite(PIN_OUTPUT, Output);
+  i++;
+}
+
+
+void loop(void)
+{
+  int icopy = 0;
+  noInterrupts();
+  Serial.print(Input);//For debug purpose
+  Serial.print(" ");
+  icopy = i;
+  Serial.println(icopy);
+  interrupts();
+  delay(1000);
+}
