@@ -7,14 +7,12 @@
 
 #include <avdweb_AnalogReadFast.h>
 
-#include <TimerOne.h>
-
 #include <PID_v1.h>
 
 #define PIN_INPUT 0  //This is the feedback pin
 #define PIN_OUTPUT 3
 
-volatile int i = 0;
+volatile double i = 0;
 
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
@@ -36,8 +34,6 @@ void setup(void)
 {
   pinMode(PIN_INPUT, INPUT);
   pinMode(PIN_OUTPUT, OUTPUT);
-  Timer1.initialize(100000);//interrupt happens every 1 million second
-  Timer1.attachInterrupt(Controller); 
   Serial.begin(9600);
 
   //PID part: initialize the variables we're linked to
@@ -58,23 +54,36 @@ void setup(void)
   InitTimersSafe();
   bool success = SetPinFrequencySafe(PIN_OUTPUT,frequency); // set frequency
 
-  
+  cli();//stop interrupts
+
+  //set timer1 interrupt at 8kHz
+  TCCR1A = 0;// set entire TCCR1A register to 0
+  TCCR1B = 0;// same for TCCR1B
+  TCNT1  = 0;//initialize counter value to 0
+  // set compare match register for 1hz increments
+  OCR1A = 499;// = (16*10^6) / (4000*8) - 1 (must be <256)
+  // turn on CTC mode
+  TCCR1B |= (1 << WGM12);
+  // Set CS10 and CS12 bits for 8 prescaler
+  TCCR1B |= (1 << CS11);  
+  // enable timer compare interrupt
+  TIMSK1 |= (1 << OCIE1A);
+  sei();//allow interrupts
 }
 
-void Controller(void)
-{
-  //PID part: 
-//  Input = analogReadFast(PIN_INPUT);
-//  average = average*alpha+Input*(1-alpha);
-//  myPID.Compute();
-//  pwmWrite(PIN_OUTPUT, Output);
-  i++;
-}
 
+ISR(TIMER1_COMPA_vect){  //change the 0 to 1 for timer1 and 2 for timer2
+   //  PID part: 
+  Input = analogReadFast(PIN_INPUT);
+  average = average*alpha+Input*(1-alpha);
+  myPID.Compute();
+  pwmWrite(PIN_OUTPUT, Output);
+   i++;
+}
 
 void loop(void)
 {
-  int icopy = 0;
+  int32_t icopy = 0;
   noInterrupts();
   Serial.print(Input);//For debug purpose
   Serial.print(" ");
