@@ -1,7 +1,7 @@
 
 // This example uses the timer interrupt to sample feedback from boost converter.
-// The sampling time is set as 1000Hz
-// After the calculation of PID is done, it will generate a PWM output with 10kHz frequency.
+// The sampling time is set as 5kHz
+// After the calculation of PID is done, it will generate a PWM output with 100kHz frequency.
 
 #include <PWM.h>
 
@@ -44,7 +44,7 @@ void setup(void)
   myPID.SetMode(AUTOMATIC);
 
   //minimize the Sampling time (1 micro second) 
-  myPID.SetSampleTime(500);
+  myPID.SetSampleTime(200);
 
   //Set output limits
   myPID.SetOutputLimits(40, 200);
@@ -61,7 +61,7 @@ void setup(void)
   TCCR1B = 0;// same for TCCR1B
   TCNT1  = 0;//initialize counter value to 0
   // set compare match register for 1hz increments
-  OCR1A = 499;// = (16*10^6) / (4000*8) - 1 (must be <256)
+  OCR1A = 499;// = (16*10^6) / (5000*8) - 1 (must be <256)
   // turn on CTC mode
   TCCR1B |= (1 << WGM12);
   // Set CS10 and CS12 bits for 8 prescaler
@@ -81,7 +81,7 @@ ISR(TIMER1_COMPA_vect){  //change the 0 to 1 for timer1 and 2 for timer2
    i++;
 }
 
-void loop(void)
+void loop(void)//to make sure PID actually run 5k times per second.
 {
   int32_t icopy = 0;
   noInterrupts();
