@@ -1,7 +1,7 @@
 
 // This example uses the timer interrupt to sample feedback from boost converter.
 // The sampling time is set as 5kHz
-// After the calculation of PID is done, it will generate a PWM output with 100kHz frequency.
+// After the calculation of PID, PIN_OUTPUT will generate a PWM output with 100kHz frequency.
 
 #include <PWM.h>
 
@@ -17,7 +17,7 @@ volatile double i = 0;
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
 
-//Exponential Filter
+//Exponential Filter. To alleviate the noise in feedback
 double alpha = 0.3;
 double average = 0;
 
@@ -81,7 +81,7 @@ ISR(TIMER1_COMPA_vect){  //change the 0 to 1 for timer1 and 2 for timer2
    i++;
 }
 
-void loop(void)//to make sure PID actually run 5k times per second.
+void loop(void)//to print the value of variables for debug purpose.
 {
   int32_t icopy = 0;
   noInterrupts();
